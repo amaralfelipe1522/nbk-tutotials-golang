@@ -56,6 +56,7 @@ func showBooks(w http.ResponseWriter, r *http.Request) {
 }
 
 func insertBook(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusCreated) //201
 	//Inserindo livro a partir de uma nova variável
 	var newBook = Book{
 		ID:     len(Books) + 1,
