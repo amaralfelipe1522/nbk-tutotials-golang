@@ -38,20 +38,25 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello")
 }
 
-func showBooks(w http.ResponseWriter, r *http.Request) {
+//Função que define qual ação realizar (showBooks ou insertBooks) a partir do método
+func getMethod(w http.ResponseWriter, r *http.Request) {
 	confHeader(&w)
-	if r.Method != "GET" {
-		return
+	if r.Method == "GET" {
+		showBooks(w, r)
+	} else if r.Method == "POST" {
+		insertBook(w, r)
+	} else {
+		fmt.Fprintf(w, "Método não é GET e nem POST.")
 	}
+}
+
+func showBooks(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Books)
 }
 
-// func insertBook(w http.ResponseWriter, r *http.Request) {
-// 	if r.Method != "POST" {
-// 		return
-// 	}
-// 	fmt.Fprintf(w, "Insert")
-// }
+func insertBook(w http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(w).Encode("Insertando")
+}
 
 func confHeader(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
@@ -62,7 +67,7 @@ func confHeader(w *http.ResponseWriter) {
 
 func confHandler() {
 	http.HandleFunc("/", mainHandler)
-	http.HandleFunc("/books", showBooks)
+	http.HandleFunc("/books", getMethod)
 	//http.HandleFunc("/books", insertBook)
 }
 
