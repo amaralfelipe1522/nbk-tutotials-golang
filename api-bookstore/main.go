@@ -42,15 +42,31 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 //Função que define qual ação realizar (showBooks ou insertBooks) a partir do método
-func getMethod(w http.ResponseWriter, r *http.Request) {
+func getFunction(w http.ResponseWriter, r *http.Request) {
 	confHeader(&w)
-	if r.Method == "GET" {
-		showBooks(w, r)
-	} else if r.Method == "POST" {
-		insertBook(w, r)
+	splitURL := strings.Split(r.URL.Path, "/")
+	// URL for "/books" ou "/books/"
+	if len(splitURL) == 2 || len(splitURL) == 3 && splitURL[2] == "" {
+		if r.Method == "GET" {
+			showBooks(w, r)
+		} else if r.Method == "POST" {
+			insertBook(w, r)
+		} else {
+			fmt.Fprintf(w, "Método não é GET e nem POST.")
+			return
+		}
+	} else if len(splitURL) == 3 || len(splitURL) == 4 && splitURL[3] == "" {
+		if r.Method == "GET" {
+			findBook(w, r)
+		} else if r.Method == "DELETE" {
+			deleteBook(w, r)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
 	} else {
-		fmt.Fprintf(w, "Método não é GET e nem POST.")
+		w.WriteHeader(http.StatusNotFound)
 	}
+
 }
 
 func showBooks(w http.ResponseWriter, r *http.Request) {
@@ -83,15 +99,13 @@ func insertBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func findBook(w http.ResponseWriter, r *http.Request) {
-	confHeader(&w)
 	splitURL := strings.Split(r.URL.Path, "/")
-	if len(splitURL) > 3 {
-		fmt.Fprintf(w, "URL incorreta")
-		return
-	}
 	//index 2 do array é o ID passado na URL
 	id, _ := strconv.Atoi(splitURL[2])
-
+	if id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	for _, book := range Books {
 		if book.ID == id {
 			json.NewEncoder(w).Encode(book)
@@ -99,6 +113,23 @@ func findBook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.WriteHeader(http.StatusNotFound)
+}
+
+func deleteBook(w http.ResponseWriter, r *http.Request) {
+	splitURL := strings.Split(r.URL.Path, "/")
+	id, _ := strconv.Atoi(splitURL[2])
+	if id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	for index, book := range Books {
+		if book.ID == id {
+			fmt.Fprintf(w, "O livro %s foi deletado", book.Title)
+			Books = append(Books[:index], Books[index+1:]...)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func confHeader(w *http.ResponseWriter) {
@@ -110,9 +141,8 @@ func confHeader(w *http.ResponseWriter) {
 
 func confHandler() {
 	http.HandleFunc("/", mainHandler)
-	http.HandleFunc("/books", getMethod)
-	// ex.: GET /livros/123 (r.URL.Path)
-	http.HandleFunc("/books/", findBook)
+	http.HandleFunc("/books", getFunction)
+	http.HandleFunc("/books/", getFunction)
 }
 
 func confServer() {
