@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 //Book armazena os dados do livros
@@ -80,6 +82,25 @@ func insertBook(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Books)
 }
 
+func findBook(w http.ResponseWriter, r *http.Request) {
+	confHeader(&w)
+	splitURL := strings.Split(r.URL.Path, "/")
+	if len(splitURL) > 3 {
+		fmt.Fprintf(w, "URL incorreta")
+		return
+	}
+	//index 2 do array é o ID passado na URL
+	id, _ := strconv.Atoi(splitURL[2])
+
+	for _, book := range Books {
+		if book.ID == id {
+			json.NewEncoder(w).Encode(book)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNotFound)
+}
+
 func confHeader(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -90,7 +111,8 @@ func confHeader(w *http.ResponseWriter) {
 func confHandler() {
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/books", getMethod)
-	//http.HandleFunc("/books", insertBook)
+	// ex.: GET /livros/123 (r.URL.Path)
+	http.HandleFunc("/books/", findBook)
 }
 
 func confServer() {
