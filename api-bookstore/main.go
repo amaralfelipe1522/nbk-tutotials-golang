@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
@@ -55,7 +56,27 @@ func showBooks(w http.ResponseWriter, r *http.Request) {
 }
 
 func insertBook(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("Insertando")
+	//Inserindo livro a partir de uma nova variável
+	var newBook = Book{
+		ID:     len(Books) + 1,
+		Title:  "Laranja Mecanica",
+		Author: "Anthony Burgess",
+	}
+	Books = append(Books, newBook)
+
+	/* Inserindo livro pelo Body da requisição:
+	{
+		"title":  "Dragões de Ether",
+		"author": "Raphael Dracoon"
+	}
+	*/
+	rBody, _ := ioutil.ReadAll(r.Body)
+	json.Unmarshal(rBody, &newBook)
+	//Gambiarra para autoincremento do ID
+	newBook.ID = len(Books) + 1
+	Books = append(Books, newBook)
+
+	json.NewEncoder(w).Encode(Books)
 }
 
 func confHeader(w *http.ResponseWriter) {
