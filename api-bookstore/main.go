@@ -60,6 +60,8 @@ func getFunction(w http.ResponseWriter, r *http.Request) {
 			findBook(w, r)
 		} else if r.Method == "DELETE" {
 			deleteBook(w, r)
+		} else if r.Method == "PUT" {
+			updateBook(w, r)
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -126,6 +128,30 @@ func deleteBook(w http.ResponseWriter, r *http.Request) {
 		if book.ID == id {
 			fmt.Fprintf(w, "O livro %s foi deletado", book.Title)
 			Books = append(Books[:index], Books[index+1:]...)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func updateBook(w http.ResponseWriter, r *http.Request) {
+	splitURL := strings.Split(r.URL.Path, "/")
+	//index 2 do array é o ID passado na URL
+	id, _ := strconv.Atoi(splitURL[2])
+	if id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	var newBook Book
+
+	rBody, _ := ioutil.ReadAll(r.Body)
+	json.Unmarshal(rBody, &newBook)
+
+	for index, book := range Books {
+		if book.ID == id {
+			fmt.Fprintf(w, "O livro %s foi atualizado", book.Title)
+			Books[index].Title = newBook.Title
+			Books[index].Author = newBook.Author
 			return
 		}
 	}
