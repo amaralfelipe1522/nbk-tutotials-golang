@@ -1,8 +1,13 @@
 package main
 
-// Exemplo baseado no video https://www.youtube.com/watch?v=9sovjfz_loA
-// Para executar via CompileDaemon: $HOME/go_projects/bin/CompileDaemon -command="./api-bookstore"
-// Mas configurando o /bin no $GOPATH o comando será apenas: CompileDaemon -command="./api-bookstore"
+/*
+	Exemplo baseado no video https://www.youtube.com/watch?v=9sovjfz_loA
+	Para executar via CompileDaemon: $HOME/go_projects/bin/CompileDaemon -command="./api-bookstore"
+	Mas configurando o /bin no $GOPATH o comando será apenas: CompileDaemon -command="./api-bookstore"
+	Ex. .bashrc:
+		export GOPATH=$HOME/go
+		export PATH=$PATH:${GOPATH//://bin:}/bin
+*/
 import (
 	"encoding/json"
 	"fmt"
