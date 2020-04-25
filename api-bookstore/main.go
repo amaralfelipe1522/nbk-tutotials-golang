@@ -2,6 +2,7 @@ package main
 
 // Exemplo baseado no video https://www.youtube.com/watch?v=9sovjfz_loA
 // Para executar via CompileDaemon: $HOME/go_projects/bin/CompileDaemon -command="./api-bookstore"
+// Mas configurando o /bin no $GOPATH o comando será apenas: CompileDaemon -command="./api-bookstore"
 import (
 	"encoding/json"
 	"fmt"
