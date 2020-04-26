@@ -5,8 +5,10 @@ package main
 	Para executar via CompileDaemon: $HOME/go_projects/bin/CompileDaemon -command="./api-bookstore"
 	Mas configurando o /bin no $GOPATH o comando será apenas: CompileDaemon -command="./api-bookstore"
 	Ex. .bashrc:
-		export GOPATH=$HOME/go
-		export PATH=$PATH:${GOPATH//://bin:}/bin
+	export GOPATH=$HOME/go
+	export PATH=$PATH:${GOPATH//://bin:}/bin
+
+	Por default CompileDaemon executa como GO BUILD, para se comportar como GO INSTALL deve ser: CompileDaemon -build="go install" -command="api-bookstore"
 */
 import (
 	"encoding/json"
