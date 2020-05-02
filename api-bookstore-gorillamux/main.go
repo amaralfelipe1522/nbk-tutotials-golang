@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -40,35 +39,6 @@ var Books []Book = []Book{
 
 func mainHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello")
-}
-
-//Função que define qual ação realizar (showBooks ou insertBooks) a partir do método
-func getFunction(w http.ResponseWriter, r *http.Request) {
-	confHeader(&w)
-	splitURL := strings.Split(r.URL.Path, "/")
-	// URL for "/books" ou "/books/"
-	if len(splitURL) == 2 || len(splitURL) == 3 && splitURL[2] == "" {
-		if r.Method == "GET" {
-			showBooks(w, r)
-		} else if r.Method == "POST" {
-			insertBook(w, r)
-		} else {
-			fmt.Fprintf(w, "Método não é GET e nem POST.")
-			return
-		}
-	} else if len(splitURL) == 3 || len(splitURL) == 4 && splitURL[3] == "" {
-		if r.Method == "GET" {
-			findBook(w, r)
-		} else if r.Method == "DELETE" {
-			deleteBook(w, r)
-		} else if r.Method == "PUT" {
-			updateBook(w, r)
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-		}
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-	}
 }
 
 func showBooks(w http.ResponseWriter, r *http.Request) {
