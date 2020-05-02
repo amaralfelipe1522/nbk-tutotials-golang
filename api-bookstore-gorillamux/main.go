@@ -1,15 +1,5 @@
 package main
 
-/*
-	Exemplo baseado no video https://www.youtube.com/watch?v=9sovjfz_loA
-	Para executar via CompileDaemon: $HOME/go_projects/bin/CompileDaemon -command="./api-bookstore"
-	Mas configurando o /bin no $GOPATH o comando será apenas: CompileDaemon -command="./api-bookstore"
-	Ex. .bashrc:
-	export GOPATH=$HOME/go
-	export PATH=$PATH:${GOPATH//://bin:}/bin
-
-	Por default CompileDaemon executa como GO BUILD, para se comportar como GO INSTALL deve ser: CompileDaemon -build="go install" -command="api-bookstore"
-*/
 import (
 	"encoding/json"
 	"fmt"
@@ -18,6 +8,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 //Book armazena os dados do livros
@@ -77,14 +69,15 @@ func getFunction(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusNotFound)
 	}
-
 }
 
 func showBooks(w http.ResponseWriter, r *http.Request) {
+	confHeader(&w)
 	json.NewEncoder(w).Encode(Books)
 }
 
 func insertBook(w http.ResponseWriter, r *http.Request) {
+	confHeader(&w)
 	w.WriteHeader(http.StatusCreated) //201
 	//Inserindo livro a partir de uma nova variável
 	var newBook = Book{
@@ -110,9 +103,11 @@ func insertBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func findBook(w http.ResponseWriter, r *http.Request) {
-	splitURL := strings.Split(r.URL.Path, "/")
-	//index 2 do array é o ID passado na URL
-	id, _ := strconv.Atoi(splitURL[2])
+	confHeader(&w)
+	// Utiliza o bookID presente na URL
+	vars := mux.Vars(r)["bookID"]
+	id, _ := strconv.Atoi(vars)
+
 	if id == 0 {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -127,8 +122,9 @@ func findBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteBook(w http.ResponseWriter, r *http.Request) {
-	splitURL := strings.Split(r.URL.Path, "/")
-	id, _ := strconv.Atoi(splitURL[2])
+	confHeader(&w)
+	vars := mux.Vars(r)["bookID"]
+	id, _ := strconv.Atoi(vars)
 	if id == 0 {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -144,15 +140,15 @@ func deleteBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateBook(w http.ResponseWriter, r *http.Request) {
-	splitURL := strings.Split(r.URL.Path, "/")
-	//index 2 do array é o ID passado na URL
-	id, _ := strconv.Atoi(splitURL[2])
+	confHeader(&w)
+	vars := mux.Vars(r)["bookID"]
+	id, _ := strconv.Atoi(vars)
 	if id == 0 {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	var newBook Book
-
+	// armazena o JSON do body no newBook para atualizar o Books
 	rBody, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(rBody, &newBook)
 
@@ -174,16 +170,20 @@ func confHeader(w *http.ResponseWriter) {
 	(*w).Header().Set("Content-Type", "application/json")
 }
 
-func confHandler() {
-	http.HandleFunc("/", mainHandler)
-	http.HandleFunc("/books", getFunction)
-	http.HandleFunc("/books/", getFunction)
+func confHandler(router *mux.Router) { // 4°
+	router.HandleFunc("/", mainHandler)
+	router.HandleFunc("/books", showBooks).Methods("GET")
+	router.HandleFunc("/books/{bookID}", findBook).Methods("GET")
+	router.HandleFunc("/books", insertBook).Methods("POST")
+	router.HandleFunc("/books/{bookID}", deleteBook).Methods("DELETE")
+	router.HandleFunc("/books/{bookID}", updateBook).Methods("PUT")
 }
 
 func confServer() {
-	confHandler()
+	router := mux.NewRouter().StrictSlash(true) // 1° // StrictSlash(true) permite URLs com ou sem barras
+	confHandler(router)                         // 2°
 	fmt.Println("Rodando na porta 3000.")
-	log.Fatal(http.ListenAndServe(":3000", nil))
+	log.Fatal(http.ListenAndServe(":3000", router)) // 3º
 }
 
 func main() {
