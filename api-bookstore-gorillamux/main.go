@@ -129,7 +129,7 @@ func updateBook(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func confHeader(next http.Handler) http.Handler {
+func confHeader(next http.Handler) http.Handler { // middleware
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -150,9 +150,8 @@ func confHandler(router *mux.Router) { // 4°
 
 func confServer() {
 	router := mux.NewRouter().StrictSlash(true) // 1° // StrictSlash(true) permite URLs com ou sem barras
-	router.Use(confHeader)
-	confHandler(router) // 2°
-
+	router.Use(confHeader)                      // Chama o middleware para definir o cabeçalho da requisição
+	confHandler(router)                         // 2°
 	fmt.Println("Rodando na porta 3000.")
 	log.Fatal(http.ListenAndServe(":3000", router)) // 3º
 }
