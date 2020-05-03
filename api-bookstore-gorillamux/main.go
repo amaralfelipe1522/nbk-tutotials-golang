@@ -42,12 +42,10 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func showBooks(w http.ResponseWriter, r *http.Request) {
-	confHeader(&w)
 	json.NewEncoder(w).Encode(Books)
 }
 
 func insertBook(w http.ResponseWriter, r *http.Request) {
-	confHeader(&w)
 	w.WriteHeader(http.StatusCreated) //201
 	//Inserindo livro a partir de uma nova variável
 	var newBook = Book{
@@ -73,7 +71,6 @@ func insertBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func findBook(w http.ResponseWriter, r *http.Request) {
-	confHeader(&w)
 	// Utiliza o bookID presente na URL
 	vars := mux.Vars(r)["bookID"]
 	id, _ := strconv.Atoi(vars)
@@ -92,9 +89,9 @@ func findBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteBook(w http.ResponseWriter, r *http.Request) {
-	confHeader(&w)
 	vars := mux.Vars(r)["bookID"]
 	id, _ := strconv.Atoi(vars)
+
 	if id == 0 {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -110,7 +107,6 @@ func deleteBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateBook(w http.ResponseWriter, r *http.Request) {
-	confHeader(&w)
 	vars := mux.Vars(r)["bookID"]
 	id, _ := strconv.Atoi(vars)
 	if id == 0 {
@@ -133,25 +129,30 @@ func updateBook(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func confHeader(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	(*w).Header().Set("Content-Type", "application/json")
+func confHeader(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func confHandler(router *mux.Router) { // 4°
 	router.HandleFunc("/", mainHandler)
 	router.HandleFunc("/books", showBooks).Methods("GET")
-	router.HandleFunc("/books/{bookID}", findBook).Methods("GET")
 	router.HandleFunc("/books", insertBook).Methods("POST")
+	router.HandleFunc("/books/{bookID}", findBook).Methods("GET")
 	router.HandleFunc("/books/{bookID}", deleteBook).Methods("DELETE")
 	router.HandleFunc("/books/{bookID}", updateBook).Methods("PUT")
 }
 
 func confServer() {
 	router := mux.NewRouter().StrictSlash(true) // 1° // StrictSlash(true) permite URLs com ou sem barras
-	confHandler(router)                         // 2°
+	router.Use(confHeader)
+	confHandler(router) // 2°
+
 	fmt.Println("Rodando na porta 3000.")
 	log.Fatal(http.ListenAndServe(":3000", router)) // 3º
 }
