@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 )
 
@@ -37,12 +39,32 @@ var Books []Book = []Book{
 	},
 }
 
+//var db *sql.DB
+
 func mainHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello")
 }
 
-func showBooks(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(Books)
+func (b *Book) showBooks(w http.ResponseWriter, r *http.Request) {
+	db := confDB()
+	defer db.Close()
+
+	op, _ := db.Begin()
+
+	rows, err := op.Query("select * from books")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var bookList []Book
+
+	for rows.Next() {
+		rows.Scan(&b.ID, &b.Title, &b.Author)
+		bookList = append(bookList, *b)
+	}
+
+	json.NewEncoder(w).Encode(bookList)
 }
 
 func insertBook(w http.ResponseWriter, r *http.Request) {
@@ -140,8 +162,9 @@ func confHeader(next http.Handler) http.Handler {
 }
 
 func confHandler(router *mux.Router) {
+	var b *Book
 	router.HandleFunc("/", mainHandler)
-	router.HandleFunc("/books", showBooks).Methods("GET")
+	router.HandleFunc("/books", b.showBooks).Methods("GET")
 	router.HandleFunc("/books", insertBook).Methods("POST")
 	router.HandleFunc("/books/{bookID}", findBook).Methods("GET")
 	router.HandleFunc("/books/{bookID}", deleteBook).Methods("DELETE")
@@ -152,10 +175,20 @@ func confServer() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.Use(confHeader)
 	confHandler(router)
-	fmt.Println("Rodando na porta 3000.")
-	log.Fatal(http.ListenAndServe(":3000", router))
+	fmt.Println("Rodando na porta 8080.")
+	log.Fatal(http.ListenAndServe(":8080", router))
+}
+
+func confDB() *sql.DB {
+	db, err := sql.Open("mysql", "root:Project@1522@/nbktutorial")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(db)
+	return db
 }
 
 func main() {
+	confDB()
 	confServer()
 }
