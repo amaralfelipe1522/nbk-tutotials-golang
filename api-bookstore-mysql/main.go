@@ -39,7 +39,7 @@ var Books []Book = []Book{
 	},
 }
 
-//var db *sql.DB
+//var waitgroup sync.WaitGroup
 
 func mainHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello")
@@ -51,19 +51,20 @@ func (b *Book) showBooks(w http.ResponseWriter, r *http.Request) {
 
 	op, _ := db.Begin()
 
-	rows, err := op.Query("select * from books")
+	rows, err := op.Query("select * from books;")
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	defer rows.Close()
 
 	var bookList []Book
 
 	for rows.Next() {
-		rows.Scan(&b.ID, &b.Title, &b.Author)
+		go rows.Scan(&b.ID, &b.Title, &b.Author)
 		bookList = append(bookList, *b)
 	}
-
+	fmt.Println("Result:", bookList)
 	json.NewEncoder(w).Encode(bookList)
 }
 
@@ -175,8 +176,8 @@ func confServer() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.Use(confHeader)
 	confHandler(router)
-	fmt.Println("Rodando na porta 8080.")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	fmt.Println("Rodando na porta 3000.")
+	log.Fatal(http.ListenAndServe(":3000", router))
 }
 
 func confDB() *sql.DB {
@@ -184,11 +185,10 @@ func confDB() *sql.DB {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(db)
+
 	return db
 }
 
 func main() {
-	confDB()
 	confServer()
 }
