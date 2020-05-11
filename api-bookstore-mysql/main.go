@@ -41,14 +41,11 @@ var Books []Book = []Book{
 	},
 }
 
-//var waitgroup sync.WaitGroup
-
 func mainHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello")
 }
 
 func showBooks(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Content-Type", "application/json")
 	db := confDB()
 	defer db.Close()
 
@@ -65,7 +62,10 @@ func showBooks(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var book Book
-		rows.Scan(&book.ID, &book.Title, &book.Author)
+		err := rows.Scan(&book.ID, &book.Title, &book.Author)
+		if err != nil {
+			log.Fatal(err)
+		}
 		bookList = append(bookList, book)
 	}
 
@@ -74,7 +74,7 @@ func showBooks(w http.ResponseWriter, r *http.Request) {
 }
 
 func insertBook(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusCreated) //201
+	w.WriteHeader(http.StatusCreated)
 	//Inserindo livro a partir de uma nova variável
 	var newBook = Book{
 		ID:     len(Books) + 1,
