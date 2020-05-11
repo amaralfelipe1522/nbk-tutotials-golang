@@ -13,6 +13,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//var waitgroup sync.WaitGroup
+
 //Book armazena os dados do livros
 type Book struct {
 	ID     int    `json:"id"`
@@ -45,7 +47,8 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello")
 }
 
-func (b *Book) showBooks(w http.ResponseWriter, r *http.Request) {
+func showBooks(w http.ResponseWriter, r *http.Request) {
+	//w.Header().Set("Content-Type", "application/json")
 	db := confDB()
 	defer db.Close()
 
@@ -61,9 +64,11 @@ func (b *Book) showBooks(w http.ResponseWriter, r *http.Request) {
 	var bookList []Book
 
 	for rows.Next() {
-		go rows.Scan(&b.ID, &b.Title, &b.Author)
-		bookList = append(bookList, *b)
+		var book Book
+		rows.Scan(&book.ID, &book.Title, &book.Author)
+		bookList = append(bookList, book)
 	}
+
 	fmt.Println("Result:", bookList)
 	json.NewEncoder(w).Encode(bookList)
 }
@@ -163,9 +168,9 @@ func confHeader(next http.Handler) http.Handler {
 }
 
 func confHandler(router *mux.Router) {
-	var b *Book
+	//var b *Book
 	router.HandleFunc("/", mainHandler)
-	router.HandleFunc("/books", b.showBooks).Methods("GET")
+	router.HandleFunc("/books", showBooks).Methods("GET")
 	router.HandleFunc("/books", insertBook).Methods("POST")
 	router.HandleFunc("/books/{bookID}", findBook).Methods("GET")
 	router.HandleFunc("/books/{bookID}", deleteBook).Methods("DELETE")
