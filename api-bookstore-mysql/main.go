@@ -68,8 +68,6 @@ func showBooks(w http.ResponseWriter, r *http.Request) {
 		}
 		bookList = append(bookList, book)
 	}
-
-	fmt.Println("Result:", bookList)
 	json.NewEncoder(w).Encode(bookList)
 }
 
@@ -107,13 +105,21 @@ func findBook(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	for _, book := range Books {
-		if book.ID == id {
-			json.NewEncoder(w).Encode(book)
-			return
-		}
+
+	db := confDB()
+	defer db.Close()
+
+	op, _ := db.Begin()
+
+	var b Book
+
+	err := op.QueryRow("select * from books where id = ?", id).Scan(&b.ID, &b.Title, &b.Author)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-	w.WriteHeader(http.StatusNotFound)
+
+	json.NewEncoder(w).Encode(b)
 }
 
 func deleteBook(w http.ResponseWriter, r *http.Request) {
