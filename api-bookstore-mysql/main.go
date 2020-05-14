@@ -73,27 +73,45 @@ func showBooks(w http.ResponseWriter, r *http.Request) {
 
 func insertBook(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
-	//Inserindo livro a partir de uma nova variável
-	var newBook = Book{
-		ID:     len(Books) + 1,
-		Title:  "Laranja Mecanica",
-		Author: "Anthony Burgess",
-	}
-	Books = append(Books, newBook)
 
-	/* Inserindo livro pelo Body da requisição:
+	db := confDB()
+	defer db.Close()
+
+	op, _ := db.Begin()
+
+	////	Inserindo livro a partir de uma nova variável
+	// var newBook = Book{
+	// 	Title:  "Laranja Mecanica",
+	// 	Author: "Anthony Burgess",
+	// }
+	// stmt, _ := op.Prepare("insert into books (title, author) values (?, ?)")
+	// _, err := stmt.Exec(newBook.Title, newBook.Author)
+	// if err != nil {
+	// 	op.Rollback()
+	// 	log.Fatal(err)
+	// }
+	// op.Commit()
+
+	/* Inserindo livro passado no Body da requisição:
 	{
 		"title":  "Dragões de Ether",
 		"author": "Raphael Dracoon"
 	}
 	*/
+	var newBook Book
 	rBody, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(rBody, &newBook)
-	//Gambiarra para autoincremento do ID
-	newBook.ID = len(Books) + 1
-	Books = append(Books, newBook)
+	stmt, _ := op.Prepare("insert into books (title, author) values (?, ?)")
+	_, err := stmt.Exec(newBook.Title, newBook.Author)
+	if err != nil {
+		op.Rollback()
+		log.Fatal(err)
+	}
 
-	json.NewEncoder(w).Encode(Books)
+	op.Commit()
+
+	fmt.Fprintf(w, "Livro inserido com sucesso:")
+	json.NewEncoder(w).Encode(newBook.Title)
 }
 
 func findBook(w http.ResponseWriter, r *http.Request) {
