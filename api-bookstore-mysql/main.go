@@ -148,14 +148,29 @@ func deleteBook(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	for index, book := range Books {
-		if book.ID == id {
-			fmt.Fprintf(w, "O livro %s foi deletado", book.Title)
-			Books = append(Books[:index], Books[index+1:]...)
-			return
-		}
+
+	db := confDB()
+	defer db.Close()
+
+	op, _ := db.Begin()
+
+	stmt, _ := op.Prepare("delete from books where id = ?")
+	result, err := stmt.Exec(id)
+	if err != nil {
+		fmt.Fprintf(w, "Erro na execução do script.")
+		op.Rollback()
+		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		fmt.Fprintf(w, "ID não encontrado.")
+		op.Rollback()
+		return
+	}
+
+	op.Commit()
+	fmt.Fprintf(w, "O livro de código %d foi deletado", id)
 }
 
 func updateBook(w http.ResponseWriter, r *http.Request) {
