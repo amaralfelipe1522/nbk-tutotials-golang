@@ -81,18 +81,9 @@ func insertBook(w http.ResponseWriter, r *http.Request) {
 	rBody, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(rBody, &newBook)
 
-	switch {
-	case len(newBook.Title) == 0:
-		fmt.Fprintf(w, "Título não informado no JSON")
-		return
-	case len(newBook.Title) > 50:
-		fmt.Fprintf(w, "Título deve ter no máximo 50 carácteres")
-		return
-	case len(newBook.Author) == 0:
-		fmt.Fprintf(w, "Autor não informado no JSON")
-		return
-	case len(newBook.Author) > 50:
-		fmt.Fprintf(w, "Autor deve ter no máximo 50 carácteres")
+	errBody := checkBody(newBook)
+	if len(errBody) > 0 {
+		fmt.Fprintf(w, errBody)
 		return
 	}
 
@@ -183,18 +174,9 @@ func updateBook(w http.ResponseWriter, r *http.Request) {
 	rBody, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(rBody, &newBook)
 
-	switch {
-	case len(newBook.Title) == 0:
-		fmt.Fprintf(w, "Título não informado no JSON")
-		return
-	case len(newBook.Title) > 50:
-		fmt.Fprintf(w, "Título deve ter no máximo 50 carácteres")
-		return
-	case len(newBook.Author) == 0:
-		fmt.Fprintf(w, "Autor não informado no JSON")
-		return
-	case len(newBook.Author) > 50:
-		fmt.Fprintf(w, "Autor deve ter no máximo 50 carácteres")
+	errBody := checkBody(newBook)
+	if len(errBody) > 0 {
+		fmt.Fprintf(w, errBody)
 		return
 	}
 
@@ -220,6 +202,18 @@ func updateBook(w http.ResponseWriter, r *http.Request) {
 
 	op.Commit()
 	fmt.Fprintf(w, "O livro de código %d foi atualizado", id)
+}
+
+func checkBody(newBook Book) string {
+	var err string
+	if len(newBook.Author) == 0 && len(newBook.Title) == 0 {
+		err = "Não encontrado Title e Author na requisição"
+	} else if len(newBook.Title) == 0 || len(newBook.Title) > 50 {
+		err = "Title deve ser > 0 e < 51"
+	} else if len(newBook.Author) == 0 || len(newBook.Author) > 50 {
+		err = "Author deve ser > 0 e < 51"
+	}
+	return err
 }
 
 func confHeader(next http.Handler) http.Handler {
