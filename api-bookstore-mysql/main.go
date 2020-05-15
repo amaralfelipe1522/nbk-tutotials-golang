@@ -80,16 +80,34 @@ func insertBook(w http.ResponseWriter, r *http.Request) {
 	var newBook Book
 	rBody, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(rBody, &newBook)
+
+	switch {
+	case len(newBook.Title) == 0:
+		fmt.Fprintf(w, "Título não informado no JSON")
+		return
+	case len(newBook.Title) > 50:
+		fmt.Fprintf(w, "Título deve ter no máximo 50 carácteres")
+		return
+	case len(newBook.Author) == 0:
+		fmt.Fprintf(w, "Autor não informado no JSON")
+		return
+	case len(newBook.Author) > 50:
+		fmt.Fprintf(w, "Autor deve ter no máximo 50 carácteres")
+		return
+	}
+
 	stmt, _ := op.Prepare("insert into books (title, author) values (?, ?)")
-	_, err := stmt.Exec(newBook.Title, newBook.Author)
+	result, err := stmt.Exec(newBook.Title, newBook.Author)
 	if err != nil {
 		op.Rollback()
 		log.Fatal(err)
 	}
 
+	idCreated, _ := result.LastInsertId()
+
 	op.Commit()
 
-	fmt.Fprintf(w, "Livro inserido com sucesso:")
+	fmt.Fprintf(w, "Livro inserido com sucesso no ID %d:", idCreated)
 	json.NewEncoder(w).Encode(newBook.Title)
 }
 
@@ -164,6 +182,21 @@ func updateBook(w http.ResponseWriter, r *http.Request) {
 	// armazena o JSON vindo do body da requisição no newBook
 	rBody, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(rBody, &newBook)
+
+	switch {
+	case len(newBook.Title) == 0:
+		fmt.Fprintf(w, "Título não informado no JSON")
+		return
+	case len(newBook.Title) > 50:
+		fmt.Fprintf(w, "Título deve ter no máximo 50 carácteres")
+		return
+	case len(newBook.Author) == 0:
+		fmt.Fprintf(w, "Autor não informado no JSON")
+		return
+	case len(newBook.Author) > 50:
+		fmt.Fprintf(w, "Autor deve ter no máximo 50 carácteres")
+		return
+	}
 
 	db := confDB()
 	defer db.Close()
