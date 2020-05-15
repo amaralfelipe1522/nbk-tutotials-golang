@@ -13,32 +13,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//var waitgroup sync.WaitGroup
-
 //Book armazena os dados do livros
 type Book struct {
 	ID     int    `json:"id"`
 	Title  string `json:"title"`
 	Author string `json:"author"`
-}
-
-//Books simula um banco de dados de livros
-var Books []Book = []Book{
-	Book{
-		ID:     1,
-		Title:  "Guia do Mochileiro das Galáxias",
-		Author: "Douglas Adams",
-	},
-	Book{
-		ID:     2,
-		Title:  "Guerra do Apocalipse",
-		Author: "Eduardo Spohr",
-	},
-	Book{
-		ID:     3,
-		Title:  "Deuses Americanos",
-		Author: "Neil Gaiman",
-	},
 }
 
 func mainHandler(w http.ResponseWriter, r *http.Request) {
@@ -180,26 +159,40 @@ func updateBook(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
 	var newBook Book
-	// armazena o JSON do body no newBook para atualizar o Books
+	// armazena o JSON vindo do body da requisição no newBook
 	rBody, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(rBody, &newBook)
 
-	for index, book := range Books {
-		if book.ID == id {
-			fmt.Fprintf(w, "O livro %s foi atualizado", book.Title)
-			Books[index].Title = newBook.Title
-			Books[index].Author = newBook.Author
-			return
-		}
+	db := confDB()
+	defer db.Close()
+
+	op, _ := db.Begin()
+
+	stmt, _ := op.Prepare("update books set title = ?, author = ? where id = ?")
+	result, err := stmt.Exec(newBook.Title, newBook.Author, id)
+	if err != nil {
+		fmt.Fprintf(w, "Erro na execução do script.")
+		op.Rollback()
+		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		fmt.Fprintf(w, "ID não encontrado.")
+		op.Rollback()
+		return
+	}
+
+	op.Commit()
+	fmt.Fprintf(w, "O livro de código %d foi atualizado", id)
 }
 
 func confHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r)
@@ -207,7 +200,6 @@ func confHeader(next http.Handler) http.Handler {
 }
 
 func confHandler(router *mux.Router) {
-	//var b *Book
 	router.HandleFunc("/", mainHandler)
 	router.HandleFunc("/books", showBooks).Methods("GET")
 	router.HandleFunc("/books", insertBook).Methods("POST")
